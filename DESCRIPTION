@@ -1,0 +1,33 @@
+Like /bin/echo but ANSI-escapes the output
+# $Header$
+#
+# $Log$
+# Revision 1.1  2009-07-31 22:26:28  tino
+# First version
+#
+
+Printansi echos the arguments to stdout (or a file) ANSI-escaped.
+The arguments are separated by spaces and ends the line with LF.
+
+This way you can preserve the arguments between shell sessions,
+by reading them in again.  Example:
+<pre>
+a='arg with
+newline'
+b="arg with shell '"'" shell'
+printansi "$a" "$b" > /tmp/preserve.file.$$
+read -r c d < /tmp/preserve.file.$$
+eval c="\$'$c'"
+eval d="\$'$d'"
+if [ ".$a" = ".$c" ] || [ ".$b" != ".$d" ]; then echo "fail"; fi
+</pre>
+Please note that the "read" and "eval" completely runs in the
+shell without any forks, so it's quick.
+
+If you invoke it with -f it automatically creates and locks the
+file.
+
+Options -l when combined with option -f are a quick version
+of following line:
+<pre>while read -r a; do printansi -f "file" "$a"; done</pre>
+Option -z is the same with NUL as line terminator.
