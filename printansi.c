@@ -8,6 +8,9 @@
  * Note that the required tinolib IS NOT CLL, except where noted.
  *
  * $Log$
+ * Revision 1.2  2009-07-31 22:30:49  tino
+ * Better error reporting
+ *
  * Revision 1.1  2009-07-31 22:26:28  tino
  * First version
  *
@@ -92,8 +95,7 @@ output_open(void)
 	{
 	  int	fd;
 
-	  if ((fd=tino_file_open_createE(file_name, O_RDWR|O_APPEND, 0600))<0)
-	    tino_exit("cannot open %s", file_name);
+	  fd	= tino_file_open_createA(file_name, O_RDWR|O_APPEND, 0600);
 
           verbose("try to lock file %s", file_name);
 	  TINO_ALARM_RUN();
