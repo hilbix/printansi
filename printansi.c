@@ -8,6 +8,9 @@
  * Note that the required tinolib IS NOT CLL, except where noted.
  *
  * $Log$
+ * Revision 1.3  2009-07-31 22:44:30  tino
+ * Better error reporting
+ *
  * Revision 1.2  2009-07-31 22:30:49  tino
  * Better error reporting
  *
@@ -197,7 +200,7 @@ printansi(const char *s)
  * implemented.
  */
 static void
-printfile(int fd)
+printfile(int fd, const char *name)
 {
   TINO_BUF	 buf;
   const char	*s;
@@ -213,6 +216,8 @@ printfile(int fd)
       if (cycle_time && opentime>cycle_time)
 	flushnclose();
     }
+  if (errno)
+    tino_err("ETTPA100E read error in %s", name);
 }
 
 static void
@@ -223,12 +228,12 @@ printfiles(int argc, char **argv, int argn)
       {
 	int	fd;
 
-	fd	= tino_file_open_readA(argv[argc]);
-	printfile(fd);
-	tino_file_closeA(fd, argv[argc]);
+	fd	= tino_file_open_readA(argv[argn]);
+	printfile(fd, argv[argn]);
+	tino_file_closeA(fd, argv[argn]);
       }
     else
-      printfile(0);
+      printfile(0, argv[argn]);
 }
 
 static void
