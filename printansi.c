@@ -8,6 +8,9 @@
  * Note that the required tinolib IS NOT CLL, except where noted.
  *
  * $Log$
+ * Revision 1.4  2009-08-27 18:25:03  tino
+ * Current tino/io.h support
+ *
  * Revision 1.3  2009-07-31 22:44:30  tino
  * Better error reporting
  *
@@ -90,7 +93,7 @@ output_open(void)
     return;
 
   if (!file_name)
-    out	= tino_io_fd(1);
+    out	= tino_io_fd(1, "stdout");
   else
     {
       tino_alarm_set(1, alarm_cb, NULL);
@@ -107,7 +110,7 @@ output_open(void)
 	   */
 	  if (!tino_file_lockI(fd, 1, 1))
 	    {
-	      out	= tino_io_fd(fd);
+	      out	= tino_io_fd(fd, file_name);
               verbose("appending to %s", file_name);
 	      opentime	= 0;
 	      break;
