@@ -8,6 +8,9 @@
  * Note that the required tinolib IS NOT CLL, except where noted.
  *
  * $Log$
+ * Revision 1.5  2010-01-12 02:20:02  tino
+ * Version with -d and -r
+ *
  * Revision 1.4  2009-08-27 18:25:03  tino
  * Current tino/io.h support
  *
@@ -16,10 +19,6 @@
  *
  * Revision 1.2  2009-07-31 22:30:49  tino
  * Better error reporting
- *
- * Revision 1.1  2009-07-31 22:26:28  tino
- * First version
- *
  */
 
 #include "tino/alarm.h"
@@ -31,7 +30,7 @@
 
 #include "printansi_version.h"
 
-static int	flag_loop, flag_zero, flag_verbose;
+static int	flag_loop, flag_zero, flag_verbose, flag_date, flag_relax;
 static char	*prefix_string, *suffix_string, *argument_separator, *quote_string;
 static char	*file_name;
 static int	cycle_time;
@@ -41,6 +40,9 @@ static int	out=-1, quotes;
 static int	within_line;
 
 static int	arm, tick, opentime;
+
+static int	havetime;
+static char	now[20];
 
 static void
 verbose(const char *s, ...)
@@ -58,45 +60,80 @@ verbose(const char *s, ...)
 static void
 flushnclose(void)
 {
+  int oarm;
+
   if (out<0)
     return;
 
+  /* prevent reentrancy
+   */
+  oarm	= arm;
+  arm	= 0;
+
   tino_io_write(out, NULL, 1);
-  tino_file_closeA(out, file_name);
-  verbose("closed file %s", file_name);
+  tino_file_flush_fdE(out);
+  if (file_name)
+    {
+      tino_file_closeA(out, file_name);
+      verbose("closed file %s", file_name);
+    }
+  else
+    verbose("closed STDOUT");
+
   out	= -1;
 
   tino_relax();
+
+  arm	= oarm;
 }
 
 static int
 alarm_cb(void *user, long delta, time_t now, long run)
 {
   opentime++;
-  if (file_name && out>=0 && arm)
-    switch (++tick)
-      {
-      case 2:
-	tino_io_write(out, NULL, 1);
-	break;
-      case 3:
-	flushnclose();
-	break;
-      }
+  havetime=0;
+
+  if (!arm)
+    return 0;	/* not arms, no fun	*/
+
+  if (out<0)
+    return 1;	/* if we have no file we do not need this alarm as it will be re-inserted	*/
+
+  switch (++tick)
+    {
+    case 2:
+      arm=0;
+      tino_io_write(out, NULL, 1);
+      arm=1;
+      break;
+
+    case 3:
+      flushnclose();
+      break;
+    }
+
   return 0;
 }
 
 static void
 output_open(void)
 {
+  int	oarm;
+
   if (out>=0)
     return;
 
+  oarm	= arm;
+  arm	= 0;
+
+  tino_alarm_set(1, alarm_cb, NULL);
   if (!file_name)
-    out	= tino_io_fd(1, "stdout");
+    {
+      out	= tino_io_fd(1, "stdout");
+      verbose("opened STDOUT");
+    }
   else
     {
-      tino_alarm_set(1, alarm_cb, NULL);
       for (;;)
 	{
 	  int	fd;
@@ -116,8 +153,12 @@ output_open(void)
 	      break;
 	    }
 	  tino_file_closeE(fd);
+	  /* loop 	*/
 	}
     }
+  tino_io_prep(out);	/* create the IO buffer	*/
+
+  arm	= oarm;
 }
 
 static void
@@ -160,6 +201,18 @@ prefix(void)
   else
     {
       output_open();
+      if (flag_date)
+        {
+          if (!havetime)
+	    {
+	      time_t tmp;
+
+              time(&tmp);
+	      strftime(now,sizeof now,"[%Y%m%d-%H%M%S]", gmtime(&tmp));
+              havetime=1;
+            }
+	  outs(now);
+	}
       if (prefix_string)
 	outs(prefix_string);
     }
@@ -194,7 +247,7 @@ printansi(const char *s)
 {
   prefix();
   quote();
-  tino_put_ansi(out, s, NULL);
+  tino_put_ansi(out, s, flag_relax ? "" : NULL);
   quote();
   within_line	= 1;
 }
@@ -212,8 +265,11 @@ printfile(int fd, const char *name)
   while ((s=tino_buf_line_read(&buf, fd, flag_zero ? 0 : '\n'))!=0)
     {
       arm	= 0;
-      printansi(s);
-      newline();
+      if (*s)
+	{
+	  printansi(s);
+	  newline();
+	}
       arm	= 1;
       tick	= 0;
       if (cycle_time && opentime>cycle_time)
@@ -269,6 +325,11 @@ main(int argc, char **argv)
 		      , &cycle_time,
 		      33,
 
+		      TINO_GETOPT_FLAG
+		      "d	prefix line with UTC date stamp [YYYYMMDD-HHMMSS]\n"
+		      "		This comes before -p"
+		      , &flag_date,
+
 		      TINO_GETOPT_STRING
 		      "f name	output to file instead of stdout\n"
 		      "		This locks the file and creates it as needed."
@@ -288,6 +349,10 @@ main(int argc, char **argv)
 		      "		This string is cycled character by character.\n"
 		      "		Empty string quotes with NUL"
 		      , &quote_string,
+
+		      TINO_GETOPT_FLAG
+		      "r	relaxed output, do not escape spaces nor tic (')."
+		      , &flag_relax,
 
 		      TINO_GETOPT_STRING
 		      "s str	output suffix after arguments (line seprarator)\n"

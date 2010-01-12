@@ -1,4 +1,15 @@
-First version, nearly untested.
+Options -d and -r added
 
-As there is a new unit (io.h for put.h) in tinoLib,
-there might be grave bugs.  We will see.
+Also possible race condition removed.
+
+Now printansi can be used as a save logfile, like in
+
+for a
+do
+	echo "start $a"
+	process "$a"
+	echo "finished $a: $?"
+done |
+# Log lines "[YYYYMMDD-HHMMSS][PID] stdin"
+printansi -drp "[$$]" -lf logfile.out -
+
