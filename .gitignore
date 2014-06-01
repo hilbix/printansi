@@ -1,0 +1,4 @@
+*.d
+*.o
+printansi
+printansi_version.h
