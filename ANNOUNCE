@@ -1,15 +1,2 @@
-Options -d and -r added
-
-Also possible race condition removed.
-
-Now printansi can be used as a save logfile, like in
-
-for a
-do
-	echo "start $a"
-	process "$a"
-	echo "finished $a: $?"
-done |
-# Log lines "[YYYYMMDD-HHMMSS][PID] stdin"
-printansi -drp "[$$]" -lf logfile.out -
-
+Announcements are now in the git commit log:
+git log --follow VERSION
