@@ -262,7 +262,7 @@ printfile(int fd, const char *name)
   const char	*s;
 
   tino_buf_initO(&buf);
-  while ((s=tino_buf_line_read(&buf, fd, flag_zero ? 0 : '\n'))!=0)
+  while ((s=tino_buf_line_readE(&buf, fd, flag_zero ? 0 : '\n'))!=0)
     {
       arm	= 0;
       if (*s)
